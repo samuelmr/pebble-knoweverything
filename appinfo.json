@@ -4,7 +4,7 @@
         ""
     ],
     "companyName": "Samuel Rinnetm\u00e4ki",
-    "longName": "Learn Everything",
+    "longName": "Know Everything",
     "projectType": "pebblejs",
     "resources": {
         "media": [
@@ -32,7 +32,7 @@
         ]
     },
     "sdkVersion": "3",
-    "shortName": "Learn Everything",
+    "shortName": "Know Everything",
     "uuid": "257091e9-f4aa-4bef-a812-32652240f72e",
     "versionCode": 1,
     "versionLabel": "1.0",

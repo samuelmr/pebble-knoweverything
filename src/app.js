@@ -1,14 +1,13 @@
 var UI = require('ui');
 var ajax = require('ajax');
 var Accel = require('ui/accel');
-var txtwiki = require('txtwiki.js');
 
 Accel.init();
 Accel.on('tap', getRandom);
 
-var pageId;
-
 var main = new UI.Card({
+  backgroundColor: 'black',
+  textColor: 'white',
   title: 'Random fact',
   // icon: 'images/menu_icon.png',
   subtitle: 'Loading...',
@@ -33,10 +32,12 @@ function getRandom() {
 function fetchArticle(data, status, request) {
   var title = data.query.random[0].title;
   main.title(title);
-  var url = 'https://en.wikipedia.org/w/api.php?format=json&action=query&prop=revisions&rvprop=content&titles=' + 
-    title;
+  fetchByTitle(title);
+}
+
+function fetchByTitle(title) {
+  var url = 'http://rest.wikimedia.org/en.wikipedia.org/v1/page/mobile-text/' + title;
   console.log(url);
-  pageId = data.query.random[0].id;
   ajax(
     {
       url: url,
@@ -44,28 +45,31 @@ function fetchArticle(data, status, request) {
     },
     printArticle,
     ajaxError
-  );
+  );  
 }
 
 function printArticle(data, status, request) {
-  if (!data || !data.query || !data.query.pages || !data.query.pages[pageId]) {
-    console.warn('No page contents! ' + pageId);
-    console.log(data.query.pages);
+  if (!data || !data.sections || !data.sections[0] || !data.sections[0].items) {
+    console.warn('No page contents!');
+    console.log(JSON.stringify(data));
     main.subtitle('Failed, sorry!');
-    main.body("Shake your wrist for another article!");
+    main.body("Shake your wrist for another random article!");
     return false;
   }
-  var revs = data.query.pages[pageId].revisions;
-  var text = revs[revs.length-1]['*']; // latest revision?
-  // console.log(text.length);
-  // console.log(text);
-  var res = text.match(/([\s\S]*?)^=/m);
-  if (res && res[1]) {
-    // only keep text before first heading
-    text = res[1];
+  var text = "Nothing found...";
+  for (var i=0; i<data.sections[0].items.length; i++) {
+    var o = data.sections[0].items[i];
+    if (!o.type || (o.type != 'p')) {
+      continue;
+    }
+    text = o.text.replace(/<[^>]*>/gm, '').replace(/\&amp;/g, '&');
+    // continue if the first paragraph ends with a colon
+    if (!text.match(/\:\s*$/)) {
+      break;
+    }
   }
   main.subtitle(null);
-  main.body(txtwiki.parseWikitext(text));
+  main.body(text);
 }
 
 function ajaxError(error, status, request) {
