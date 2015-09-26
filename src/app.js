@@ -7,7 +7,9 @@ Accel.on('tap', getRandom);
 
 var main = new UI.Card({
   backgroundColor: 'black',
-  textColor: 'white',
+  titleColor: 'white',
+  subtitleColor: 'white',
+  bodyColor: 'white',
   title: 'Random fact',
   // icon: 'images/menu_icon.png',
   subtitle: 'Loading...',
@@ -32,6 +34,7 @@ function getRandom() {
 function fetchArticle(data, status, request) {
   var title = data.query.random[0].title;
   main.title(title);
+  main.backgroundColor('black');
   fetchByTitle(title);
 }
 
@@ -54,6 +57,7 @@ function printArticle(data, status, request) {
     console.log(JSON.stringify(data));
     main.subtitle('Failed, sorry!');
     main.body("Shake your wrist for another random article!");
+    main.backgroundColor('black');
     return false;
   }
   var text = "Nothing found...";
@@ -70,9 +74,9 @@ function printArticle(data, status, request) {
   }
   main.subtitle(null);
   main.body(text);
+  main.backgroundColor('black');
 }
 
 function ajaxError(error, status, request) {
   console.log('The ajax request failed: ' + error);
 }
-
