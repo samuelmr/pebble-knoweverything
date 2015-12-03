@@ -33,6 +33,10 @@
     },
     "sdkVersion": "3",
     "shortName": "Know Everything",
+    "targetPlatforms": [
+        "aplite",
+        "basalt"
+    ],
     "uuid": "257091e9-f4aa-4bef-a812-32652240f72e",
     "versionCode": 1,
     "versionLabel": "1.0",

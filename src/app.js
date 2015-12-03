@@ -1,6 +1,10 @@
 var UI = require('ui');
 var ajax = require('ajax');
 var Accel = require('ui/accel');
+var Voice = require('voice');
+
+var random_wiki_article_url = 'https://en.wikipedia.org/w/api.php?format=json&action=query&rnnamespace=0&list=random';
+var wiki_article_text_url = 'http://rest.wikimedia.org/en.wikipedia.org/v1/page/mobile-text/';
 
 Accel.init();
 Accel.on('tap', getRandom);
@@ -10,20 +14,29 @@ var main = new UI.Card({
   titleColor: 'white',
   subtitleColor: 'white',
   bodyColor: 'white',
-  title: 'Random fact',
+  title: 'Know everything',
   // icon: 'images/menu_icon.png',
-  subtitle: 'Loading...',
-  body: 'Please wait!',
+  subtitle: '',
+  body: 'Long press select for voice input. Shake your wrist for a random article.',
   scrollable: true
 });
 
+main.on('longClick', function(e) {
+  Voice.startDictationSession(function(err, transcription) {
+    if (err) {
+      console.log('Error: ' + err);
+      return;
+    }
+    fetchByTitle(transcription);
+  });
+});
+
 main.show();
-getRandom();
 
 function getRandom() {
   ajax(
     {
-      url: 'https://en.wikipedia.org/w/api.php?format=json&action=query&rnnamespace=0&list=random',
+      url: random_wiki_article_url,
       type: 'json'
     },
     fetchArticle,
@@ -39,7 +52,7 @@ function fetchArticle(data, status, request) {
 }
 
 function fetchByTitle(title) {
-  var url = 'http://rest.wikimedia.org/en.wikipedia.org/v1/page/mobile-text/' + title;
+  var url = wiki_article_text_url + encodeURIComponent(title);
   console.log(url);
   ajax(
     {
@@ -56,7 +69,7 @@ function printArticle(data, status, request) {
     console.warn('No page contents!');
     console.log(JSON.stringify(data));
     main.subtitle('Failed, sorry!');
-    main.body("Shake your wrist for another random article!");
+    main.body("Shake your wrist for a random article!");
     main.backgroundColor('black');
     return false;
   }
