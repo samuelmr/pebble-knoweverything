@@ -2,10 +2,14 @@ var UI = require('ui');
 var ajax = require('ajax');
 var Accel = require('ui/accel');
 var Voice = require('ui/voice');
+var Settings = require('settings');
+var wikis = require('wikis');
 
-var random_wiki_article_url = 'https://en.wikipedia.org/w/api.php?format=json&action=query&rnnamespace=0&list=random';
-var wiki_article_text_url = 'http://rest.wikimedia.org/en.wikipedia.org/v1/page/mobile-text/';
-var defaultBody = 'Shake your wrist for a random article.';
+var langIndex = Settings.data('langIndex') || 62; // en
+var random_wiki_article_url;
+var wiki_article_text_url;
+
+var defaultBody = 'Shake for a random article. Press select to set language.';
 if(Pebble.getActiveWatchInfo) {
   var platform = Pebble.getActiveWatchInfo().platform;
   if (platform && (platform != 'aplite')) {
@@ -35,30 +39,74 @@ var main = new UI.Card({
   scrollable: true
 });
 
+var tmp = new UI.Card({
+  title: 'Loading...',
+  body: 'Please wait!',
+  scrollable: false
+});
+
+var langConfig = new UI.Card({
+  title: 'Language',
+  scrollable: false
+});
+updateLang(langIndex);
+
 main.on('longClick', listen);
+main.on('click', function() {langConfig.show();});
 result.on('longClick', listen);
-result.on('hide', main.backgroundColor('black'));
+result.on('click', getRandom);
+result.on('hide', showMain);
+langConfig.on('hide', showMain);
+langConfig.on('click', 'up', function() {
+  updateLang(--langIndex);
+});
+langConfig.on('click', 'down', function() {
+  updateLang(++langIndex);
+});
+langConfig.on('click', 'select', function() {
+  langConfig.hide();
+});
 Accel.on('tap', getRandom);
 main.show();
+
+function showMain() {
+  // a bug workaround: in order to force scrolling back to top
+  // a non-scrollable short card is shown and hidden immediately
+  tmp.show();
+  tmp.hide();
+}
+
+function updateLang(index) {
+  if (index < 0) { index = 0; }
+  if (index >= wikis.length0) { index = wikis.length - 1;}
+  langIndex = index;
+  var lang = wikis[langIndex][2];
+  langConfig.body(wikis[langIndex][0] + ' (' + wikis[langIndex][1] +')\nPress up/down to change');
+  random_wiki_article_url = 'https://' + lang + '.wikipedia.org/w/api.php?format=json&action=query&rnnamespace=0&list=random';
+  wiki_article_text_url = 'http://rest.wikimedia.org/' + lang + '.wikipedia.org/v1/page/mobile-text/';
+  main.title('[' + lang + '] Know everything');
+  Settings.data('langIndex', langIndex);
+}
 
 function listen(e) {
   result.hide();
   result.title('Speak!');
   result.subtitle('');
   result.title('Detecting audio input...');
-  result.backgroundColor('white');
   Voice.dictate('start', function(e) {
     console.log(e.err || e.transcription);
     if (e.err) {
       result.title('Error');
-      result.subtitle('Voice input failed.');
-      result.title('Please try again!');
+      result.title('Voice input failed.');
+      result.subtitle('Please try again!');
+      result.body('Long press select.');
       console.log('Error: ' + e.err);
       result.backgroundColor('white');
       result.show();
       return;
     }
-    fetchByTitle(e.transcription);
+    // force UTF-8 conversion
+    fetchByTitle(decodeURIComponent(escape(e.transcription)));
   });  
 }
 
@@ -76,7 +124,6 @@ function getRandom() {
 function fetchArticle(data, status, request) {
   var title = data.query.random[0].title;
   result.title(title);
-  result.backgroundColor('white');
   fetchByTitle(title);
 }
 
@@ -101,7 +148,7 @@ function printArticle(data, status, request) {
     result.title('Failed, sorry!');
     result.subtitle('');
     result.body(defaultBody);
-    result.backgroundColor('white');
+    // result.backgroundColor('white');
     result.show();
     return false;
   }
@@ -117,13 +164,13 @@ function printArticle(data, status, request) {
       break;
     }
   }
+  text += '\n------\nShake or press select for a random article.';
   var title = data.normalizedtitle || data.displaytitle;
   if (title ) {
     result.title(stripHTML(title));
   }
   result.subtitle('');
   result.body(text);
-  result.backgroundColor('white');
   result.show();
 }
 
@@ -135,12 +182,11 @@ function ajaxError(error, status, request) {
     result.subtitle(stripHTML(error.title));
   }
   result.body(defaultBody);
-  result.backgroundColor('white');
   result.show();
   console.log('The ajax request failed: ' + error);
 }
 
 function stripHTML(str) {
-  str = str.replace(/<span>\[<\/span>\d+<span>\]<\/span>/g, ''); // references
-  return str.replace(/<[^>]*>/gm, '').replace(/\&amp;/g, '&').replace(/\&nbsp;/g, ' ');  
+  str = str.replace(/<[^>]*>/gm, '').replace(/\&amp;/g, '&').replace(/\&nbsp;/g, ' ');  
+  return str.replace(/\[\d+\]/g, ''); // remove references
 }
